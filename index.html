@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>LCS 模擬器</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+
+            font-family:
+                Arial,
+                "Microsoft JhengHei",
+                sans-serif;
+
+            background: #f7f7f7;
+            color: #222;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        .input-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+
+            align-items: center;
+
+            margin-bottom: 15px;
+        }
+
+        input {
+            padding: 6px 10px;
+
+            font-size: 16px;
+
+            width: 160px;
+        }
+
+        button {
+            padding: 7px 14px;
+
+            font-size: 15px;
+
+            cursor: pointer;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+
+            gap: 8px;
+
+            margin-bottom: 15px;
+        }
+
+        .message {
+            min-height: 90px;
+
+            padding: 12px;
+
+            margin-bottom: 15px;
+
+            background: #eeeeee;
+            border: 1px solid #aaa;
+
+            line-height: 1.6;
+        }
+
+        .result {
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .table-wrapper {
+            overflow: auto;
+
+            max-width: 100%;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin: auto;
+
+            background: white;
+        }
+
+        th,
+        td {
+            width: 55px;
+            min-width: 55px;
+            height: 55px;
+
+            border: 1px solid #555;
+
+            text-align: center;
+            vertical-align: middle;
+
+            position: relative;
+        }
+
+        th {
+            background: #eeeeee;
+        }
+
+        .index {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .char {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .arrow {
+            position: absolute;
+
+            top: 2px;
+            left: 4px;
+
+            font-size: 15px;
+
+            color: #555;
+        }
+
+        .value {
+            font-size: 19px;
+        }
+
+        .active {
+            background: #ffe699;
+        }
+
+        .path {
+            background: #a9dfbf;
+        }
+
+        .match {
+            background: #90ee90;
+        }
+
+        .legend {
+            margin-top: 15px;
+
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .error {
+            color: #c00;
+        }
+    </style>
+</head>
+
+
+<body>
+
+<div class="container">
+
+    <h2>LCS 動態規劃模擬器</h2>
+
+
+    <!-- 1. Input -->
+    <div class="input-area">
+
+        <label>
+            str1：
+            <input
+                id="str1"
+                value="ABCABCBA"
+            >
+        </label>
+
+
+        <label>
+            str2：
+            <input
+                id="str2"
+                value="CBABCABCC"
+            >
+        </label>
+
+
+        <button id="buildBtn">
+            確定
+        </button>
+
+    </div>
+
+
+    <!-- 2. Buttons -->
+    <div class="buttons">
+
+        <button id="nextBtn">
+            Next
+        </button>
+
+        <button id="playBtn">
+            Play
+        </button>
+
+        <button id="stopBtn">
+            Stop
+        </button>
+
+        <button id="resetBtn">
+            Reset
+        </button>
+
+    </div>
+
+
+    <!-- 3. Explanation -->
+    <div
+        id="message"
+        class="message"
+    >
+        按「確定」建立 DP 表格。
+    </div>
+
+
+    <!-- 4. Result -->
+    <div
+        id="result"
+        class="result"
+    ></div>
+
+
+    <!-- 5. DP table -->
+    <div class="table-wrapper">
+
+        <table id="dpTable"></table>
+
+    </div>
+
+
+    <div class="legend">
+
+        <strong>規則：</strong><br>
+
+        相同 → 左上 ↖ + 1<br>
+
+        不同 → max(上 ↑, 左 ←)<br>
+
+        黃色：目前處理格子<br>
+
+        綠色：LCS 回溯路徑
+
+    </div>
+
+</div>
+
+
+<script>
+
+    // =============================
+    // 1. 全域變數
+    // =============================
+
+    let s1 = "";
+    let s2 = "";
+
+    let n = 0;
+    let m = 0;
+
+    let dp = [];
+    let direction = [];
+
+    let i = 1;
+    let j = 1;
+
+    let activeI = -1;
+    let activeJ = -1;
+
+    let phase = "idle";
+
+    let backI = 0;
+    let backJ = 0;
+
+    let lcs = [];
+
+    let path = new Set();
+
+    let timer = null;
+
+
+    // =============================
+    // 2. 取得 HTML 元素
+    // =============================
+
+    const str1Input =
+        document.getElementById("str1");
+
+    const str2Input =
+        document.getElementById("str2");
+
+    const buildBtn =
+        document.getElementById("buildBtn");
+
+    const nextBtn =
+        document.getElementById("nextBtn");
+
+    const playBtn =
+        document.getElementById("playBtn");
+
+    const stopBtn =
+        document.getElementById("stopBtn");
+
+    const resetBtn =
+        document.getElementById("resetBtn");
+
+    const message =
+        document.getElementById("message");
+
+    const result =
+        document.getElementById("result");
+
+    const table =
+        document.getElementById("dpTable");
+
+
+    // =============================
+    // 3. 建立 DP
+    // =============================
+
+    function build(){
+
+        stopPlay();
+
+
+        s1 = str1Input.value.trim();
+        s2 = str2Input.value.trim();
+
+
+        if(
+            s1.length === 0 ||
+            s2.length === 0
+        ){
+
+            message.innerHTML =
+                "<span class='error'>字串不能為空。</span>";
+
+            return;
+        }
+
+
+        // 防止表格太巨大
+        if(
+            s1.length > 20 ||
+            s2.length > 20
+        ){
+
+            message.innerHTML =
+                "<span class='error'>目前限制每個字串最多 20 個字元。</span>";
+
+            return;
+        }
+
+
+        n = s1.length;
+        m = s2.length;
+
+
+        // dp
+        dp = Array.from(
+            { length: n + 1 },
+            () => Array(m + 1).fill(0)
+        );
+
+
+        // direction
+        direction = Array.from(
+            { length: n + 1 },
+            () => Array(m + 1).fill("")
+        );
+
+
+        i = 1;
+        j = 1;
+
+
+        activeI = -1;
+        activeJ = -1;
+
+
+        backI = n;
+        backJ = m;
+
+
+        lcs = [];
+
+        path = new Set();
+
+
+        phase = "dp";
+
+
+        result.textContent = "";
+
+
+        message.innerHTML =
+            "DP 表格已建立。按 <b>Next</b> 開始模擬。";
+
+
+        renderTable();
+    }
+
+
+    // =============================
+    // 4. Next
+    // =============================
+
+    function nextStep(){
+
+        if(phase === "idle"){
+
+            build();
+
+            return;
+        }
+
+
+        if(phase === "dp"){
+
+            processDP();
+
+            return;
+        }
+
+
+        if(phase === "backtrack"){
+
+            processBacktrack();
+
+            return;
+        }
+
+
+        if(phase === "done"){
+
+            stopPlay();
+        }
+    }
+
+
+    // =============================
+    // 5. DP 單一步驟
+    // =============================
+
+    function processDP(){
+
+        if(i > n){
+
+            startBacktrack();
+
+            return;
+        }
+
+
+        activeI = i;
+        activeJ = j;
+
+
+        const c1 = s1[i - 1];
+        const c2 = s2[j - 1];
+
+
+        // 相同
+        if(c1 === c2){
+
+            dp[i][j]
+                =
+                dp[i - 1][j - 1] + 1;
+
+
+            direction[i][j] = "diag";
+
+
+            message.innerHTML =
+                `
+                s1[${i - 1}] = <b>${c1}</b><br>
+                s2[${j - 1}] = <b>${c2}</b><br><br>
+
+                兩個字元相同，因此：<br>
+
+                <b>
+                dp[${i}][${j}]
+                =
+                dp[${i - 1}][${j - 1}]
+                + 1
+                =
+                ${dp[i][j]}
+                </b>
+
+                <br><br>
+
+                方向：↖ 左上
+                `;
+        }
+
+        // 不同
+        else{
+
+            const up =
+                dp[i - 1][j];
+
+            const left =
+                dp[i][j - 1];
+
+
+            if(up >= left){
+
+                dp[i][j] = up;
+
+                direction[i][j] = "up";
+
+            }
+
+            else{
+
+                dp[i][j] = left;
+
+                direction[i][j] = "left";
+
+            }
+
+
+            message.innerHTML =
+                `
+                s1[${i - 1}] = <b>${c1}</b><br>
+                s2[${j - 1}] = <b>${c2}</b><br><br>
+
+                兩個字元不同，因此：<br>
+
+                <b>
+                dp[${i}][${j}]
+                =
+                max(
+                    ${up},
+                    ${left}
+                )
+                =
+                ${dp[i][j]}
+                </b>
+
+                <br><br>
+
+                方向：
+                ${
+                    direction[i][j] === "up"
+                    ? "↑ 上"
+                    : "← 左"
+                }
+                `;
+        }
+
+
+        renderTable();
+
+
+        // 移動到下一格
+        j++;
+
+
+        if(j > m){
+
+            j = 1;
+
+            i++;
+        }
+
+
+        // DP 全部完成
+        if(i > n){
+
+            message.innerHTML +=
+                "<br><br><b>DP 已完成，下一步開始回溯 LCS。</b>";
+        }
+    }
+
+
+    // =============================
+    // 6. 開始回溯
+    // =============================
+
+    function startBacktrack(){
+
+        phase = "backtrack";
+
+        activeI = -1;
+        activeJ = -1;
+
+
+        backI = n;
+        backJ = m;
+
+
+        message.innerHTML =
+            `
+            DP 已全部完成。<br><br>
+
+            LCS 長度：
+            <b>${dp[n][m]}</b>
+
+            <br><br>
+
+            現在從右下角開始回溯。
+            `;
+
+
+        renderTable();
+    }
+
+
+    // =============================
+    // 7. 回溯一步
+    // =============================
+
+    function processBacktrack(){
+
+        if(
+            backI === 0 ||
+            backJ === 0
+        ){
+
+            finish();
+
+            return;
+        }
+
+
+        const key =
+            backI + "," + backJ;
+
+
+        path.add(key);
+
+
+        activeI = backI;
+        activeJ = backJ;
+
+
+        const c1 =
+            s1[backI - 1];
+
+        const c2 =
+            s2[backJ - 1];
+
+
+        if(c1 === c2){
+
+            lcs.push(c1);
+
+
+            message.innerHTML =
+                `
+                s1[${backI - 1}]
+                =
+                s2[${backJ - 1}]
+                =
+                <b>${c1}</b>
+
+                <br><br>
+
+                找到 LCS 字元：
+                <b>${c1}</b>
+
+                <br><br>
+
+                往左上 ↖ 移動。
+                `;
+
+
+            backI--;
+            backJ--;
+        }
+
+        else if(
+            dp[backI - 1][backJ]
+            >=
+            dp[backI][backJ - 1]
+        ){
+
+            message.innerHTML =
+                `
+                字元不同。<br><br>
+
+                上方：
+                ${dp[backI - 1][backJ]}
+
+                <br>
+
+                左方：
+                ${dp[backI][backJ - 1]}
+
+                <br><br>
+
+                上方較大或相同，
+                往上 ↑ 移動。
+                `;
+
+
+            backI--;
+        }
+
+        else{
+
+            message.innerHTML =
+                `
+                字元不同。<br><br>
+
+                上方：
+                ${dp[backI - 1][backJ]}
+
+                <br>
+
+                左方：
+                ${dp[backI][backJ - 1]}
+
+                <br><br>
+
+                左方較大，
+                往左 ← 移動。
+                `;
+
+
+            backJ--;
+        }
+
+
+        renderTable();
+
+
+        if(
+            backI === 0 ||
+            backJ === 0
+        ){
+
+            setTimeout(
+                finish,
+                timer ? 350 : 0
+            );
+        }
+    }
+
+
+    // =============================
+    // 8. 完成
+    // =============================
+
+    function finish(){
+
+        stopPlay();
+
+
+        phase = "done";
+
+
+        const answer =
+            [...lcs]
+            .reverse()
+            .join("");
+
+
+        result.innerHTML =
+            `
+            LCS =
+            "${answer}"
+
+            &nbsp;&nbsp;
+
+            Length =
+            ${dp[n][m]}
+            `;
+
+
+        message.innerHTML =
+            `
+            <b>完成！</b><br><br>
+
+            最長共同子序列：
+
+            <b>${answer}</b>
+
+            <br>
+
+            長度：
+
+            <b>${dp[n][m]}</b>
+            `;
+
+
+        activeI = -1;
+        activeJ = -1;
+
+
+        renderTable();
+    }
+
+
+    // =============================
+    // 9. 畫表格
+    // =============================
+
+    function renderTable(){
+
+        table.innerHTML = "";
+
+
+        // ---------- header ----------
+
+        const header =
+            document.createElement("tr");
+
+
+        const corner =
+            document.createElement("th");
+
+        corner.textContent = "";
+
+        header.appendChild(corner);
+
+
+        const zeroHeader =
+            document.createElement("th");
+
+        zeroHeader.innerHTML =
+            "<span class='index'>0</span>";
+
+        header.appendChild(zeroHeader);
+
+
+        for(let col = 1; col <= m; col++){
+
+            const th =
+                document.createElement("th");
+
+
+            th.innerHTML =
+                `
+                <div class="index">${col}</div>
+                <div class="char">
+                    ${escapeHTML(s2[col - 1])}
+                </div>
+                `;
+
+
+            header.appendChild(th);
+        }
+
+
+        table.appendChild(header);
+
+
+        // ---------- rows ----------
+
+        for(let row = 0; row <= n; row++){
+
+            const tr =
+                document.createElement("tr");
+
+
+            const rowHeader =
+                document.createElement("th");
+
+
+            if(row === 0){
+
+                rowHeader.innerHTML =
+                    "<span class='index'>0</span>";
+
+            }
+
+            else{
+
+                rowHeader.innerHTML =
+                    `
+                    <div class="index">${row}</div>
+                    <div class="char">
+                        ${escapeHTML(s1[row - 1])}
+                    </div>
+                    `;
+
+            }
+
+
+            tr.appendChild(rowHeader);
+
+
+            for(
+                let col = 0;
+                col <= m;
+                col++
+            ){
+
+                const td =
+                    document.createElement("td");
+
+
+                const key =
+                    row + "," + col;
+
+
+                if(
+                    row === activeI &&
+                    col === activeJ
+                ){
+
+                    td.classList.add("active");
+                }
+
+
+                if(path.has(key)){
+
+                    td.classList.add("path");
+                }
+
+
+                let arrow = "";
+
+
+                if(direction[row][col] === "diag"){
+
+                    arrow = "↖";
+
+                }
+
+                else if(
+                    direction[row][col] === "up"
+                ){
+
+                    arrow = "↑";
+
+                }
+
+                else if(
+                    direction[row][col] === "left"
+                ){
+
+                    arrow = "←";
+                }
+
+
+                td.innerHTML =
+                    `
+                    <span class="arrow">
+                        ${arrow}
+                    </span>
+
+                    <span class="value">
+                        ${dp[row][col]}
+                    </span>
+                    `;
+
+
+                tr.appendChild(td);
+            }
+
+
+            table.appendChild(tr);
+        }
+    }
+
+
+    // =============================
+    // 10. Play
+    // =============================
+
+    function play(){
+
+        if(timer !== null){
+            return;
+        }
+
+
+        timer = setInterval(
+            () => {
+
+                if(phase === "done"){
+
+                    stopPlay();
+
+                    return;
+                }
+
+
+                nextStep();
+
+            },
+            500
+        );
+    }
+
+
+    // =============================
+    // 11. Stop
+    // =============================
+
+    function stopPlay(){
+
+        if(timer !== null){
+
+            clearInterval(timer);
+
+            timer = null;
+        }
+    }
+
+
+    // =============================
+    // 12. Reset
+    // =============================
+
+    function reset(){
+
+        stopPlay();
+
+        build();
+    }
+
+
+    // =============================
+    // 13. 防 HTML Injection
+    // =============================
+
+    function escapeHTML(text){
+
+        return text
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll("\"", "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+
+    // =============================
+    // 14. Button Event
+    // =============================
+
+    buildBtn.addEventListener(
+        "click",
+        build
+    );
+
+
+    nextBtn.addEventListener(
+        "click",
+        nextStep
+    );
+
+
+    playBtn.addEventListener(
+        "click",
+        play
+    );
+
+
+    stopBtn.addEventListener(
+        "click",
+        stopPlay
+    );
+
+
+    resetBtn.addEventListener(
+        "click",
+        reset
+    );
+
+
+    // =============================
+    // 15. 初始化
+    // =============================
+
+    build();
+
+</script>
+
+</body>
+
+</html>
