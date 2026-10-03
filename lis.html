@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>LIS 模擬器</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+
+            font-family:
+                Arial,
+                "Microsoft JhengHei",
+                sans-serif;
+
+            background: #f7f7f7;
+            color: #222;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        .input-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+
+            align-items: center;
+
+            margin-bottom: 15px;
+        }
+
+        input {
+            padding: 7px 10px;
+
+            font-size: 16px;
+
+            width: 420px;
+            max-width: 100%;
+        }
+
+        button {
+            padding: 7px 14px;
+
+            font-size: 15px;
+
+            cursor: pointer;
+        }
+
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+
+            gap: 8px;
+
+            margin-bottom: 15px;
+        }
+
+        .message {
+            min-height: 130px;
+
+            padding: 12px;
+
+            margin-bottom: 15px;
+
+            background: #eeeeee;
+            border: 1px solid #aaa;
+
+            line-height: 1.7;
+        }
+
+        .result {
+            margin-bottom: 15px;
+
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .array-wrapper {
+            overflow-x: auto;
+
+            margin-bottom: 18px;
+
+            padding-bottom: 8px;
+        }
+
+        .array {
+            display: flex;
+
+            width: max-content;
+
+            gap: 5px;
+        }
+
+        .item {
+            width: 70px;
+            min-width: 70px;
+
+            border: 1px solid #666;
+
+            background: white;
+
+            text-align: center;
+        }
+
+        .item-index {
+            padding: 4px;
+
+            font-size: 12px;
+            color: #777;
+
+            border-bottom: 1px solid #ccc;
+        }
+
+        .item-value {
+            padding: 12px 5px;
+
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .item-dp {
+            padding: 6px;
+
+            border-top: 1px solid #ccc;
+
+            font-size: 14px;
+        }
+
+        .current-i {
+            background: #ffe699;
+        }
+
+        .current-j {
+            background: #b8daff;
+        }
+
+        .current-both {
+            background: #d7bde2;
+        }
+
+        .lis-path {
+            background: #a9dfbf;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+
+            width: 100%;
+
+            background: white;
+        }
+
+        th,
+        td {
+            border: 1px solid #777;
+
+            padding: 8px;
+
+            text-align: center;
+        }
+
+        th {
+            background: #eeeeee;
+        }
+
+        tr.active-row {
+            background: #fff3cd;
+        }
+
+        tr.path-row {
+            background: #d4edda;
+        }
+
+        .true {
+            color: green;
+            font-weight: bold;
+        }
+
+        .false {
+            color: #c00;
+            font-weight: bold;
+        }
+
+        .legend {
+            margin-top: 15px;
+
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .error {
+            color: #c00;
+        }
+
+        code {
+            background: #eee;
+
+            padding: 2px 5px;
+
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+
+<body>
+
+<div class="container">
+
+    <h2>LIS 動態規劃模擬器</h2>
+
+
+    <!-- 1. Input -->
+    <div class="input-area">
+
+        <label>
+            數列：
+            <input
+                id="arrayInput"
+                value="10 9 2 5 3 7 101 18"
+            >
+        </label>
+
+
+        <button id="buildBtn">
+            確定
+        </button>
+
+    </div>
+
+
+    <!-- 2. Buttons -->
+    <div class="buttons">
+
+        <button id="nextBtn">
+            Next
+        </button>
+
+        <button id="playBtn">
+            Play
+        </button>
+
+        <button id="stopBtn">
+            Stop
+        </button>
+
+        <button id="resetBtn">
+            Reset
+        </button>
+
+    </div>
+
+
+    <!-- 3. Explanation -->
+    <div
+        id="message"
+        class="message"
+    >
+        輸入數列後按「確定」。
+    </div>
+
+
+    <!-- 4. Result -->
+    <div
+        id="result"
+        class="result"
+    ></div>
+
+
+    <!-- 5. Array -->
+    <div class="array-wrapper">
+
+        <div
+            id="arrayView"
+            class="array"
+        ></div>
+
+    </div>
+
+
+    <!-- 6. DP Table -->
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+                    <th>index</th>
+                    <th>a[i]</th>
+                    <th>dp[i]</th>
+                    <th>parent[i]</th>
+                </tr>
+
+            </thead>
+
+
+            <tbody id="dpBody"></tbody>
+
+        </table>
+
+    </div>
+
+
+    <!-- 7. Legend -->
+    <div class="legend">
+
+        <strong>DP 定義：</strong><br>
+
+        <code>dp[i]</code>
+        = 以 <code>a[i]</code> 結尾的 LIS 長度
+
+        <br><br>
+
+        <strong>轉移：</strong><br>
+
+        若
+
+        <code>a[j] &lt; a[i]</code>
+
+        則
+
+        <code>
+            dp[i] = max(dp[i], dp[j] + 1)
+        </code>
+
+        <br><br>
+
+        黃色：目前的 <code>i</code><br>
+        藍色：正在比較的 <code>j</code><br>
+        綠色：最後回溯出的 LIS
+
+    </div>
+
+</div>
+
+
+<script>
+
+    // ============================
+    // 1. 全域變數
+    // ============================
+
+    let a = [];
+
+    let n = 0;
+
+    let dp = [];
+
+    let parent = [];
+
+    let i = 0;
+    let j = 0;
+
+    let activeI = -1;
+    let activeJ = -1;
+
+    let bestLength = 0;
+    let bestEnd = -1;
+
+    let phase = "idle";
+
+    let backtrackIndex = -1;
+
+    let lisAnswer = [];
+
+    let path = new Set();
+
+    let timer = null;
+
+
+    // ============================
+    // 2. HTML Elements
+    // ============================
+
+    const arrayInput =
+        document.getElementById("arrayInput");
+
+    const buildBtn =
+        document.getElementById("buildBtn");
+
+    const nextBtn =
+        document.getElementById("nextBtn");
+
+    const playBtn =
+        document.getElementById("playBtn");
+
+    const stopBtn =
+        document.getElementById("stopBtn");
+
+    const resetBtn =
+        document.getElementById("resetBtn");
+
+    const message =
+        document.getElementById("message");
+
+    const result =
+        document.getElementById("result");
+
+    const arrayView =
+        document.getElementById("arrayView");
+
+    const dpBody =
+        document.getElementById("dpBody");
+
+
+    // ============================
+    // 3. 建立模擬器
+    // ============================
+
+    function build(){
+
+        stopPlay();
+
+
+        // 支援：
+        // 1 2 3
+        // 1,2,3
+        // 1, 2, 3
+
+        const text =
+            arrayInput.value.trim();
+
+
+        if(text.length === 0){
+
+            message.innerHTML =
+                "<span class='error'>請輸入數列。</span>";
+
+            return;
+        }
+
+
+        const parts =
+            text
+            .split(/[\s,]+/)
+            .filter(x => x !== "");
+
+
+        a = parts.map(Number);
+
+
+        if(
+            a.some(x => !Number.isFinite(x))
+        ){
+
+            message.innerHTML =
+                "<span class='error'>請全部輸入數字。</span>";
+
+            return;
+        }
+
+
+        if(a.length > 30){
+
+            message.innerHTML =
+                "<span class='error'>模擬器目前限制最多 30 個數字。</span>";
+
+            return;
+        }
+
+
+        n = a.length;
+
+
+        // 每個元素自己就是長度 1 的 LIS
+        dp = Array(n).fill(1);
+
+
+        // parent[i]
+        // 記錄 LIS 前一個位置
+        parent = Array(n).fill(-1);
+
+
+        // DP 從 i = 0 開始
+        i = 0;
+        j = 0;
+
+
+        activeI = -1;
+        activeJ = -1;
+
+
+        bestLength = 0;
+        bestEnd = -1;
+
+
+        backtrackIndex = -1;
+
+
+        lisAnswer = [];
+
+
+        path = new Set();
+
+
+        phase = "dp";
+
+
+        result.innerHTML = "";
+
+
+        message.innerHTML =
+            `
+            DP 已初始化。<br><br>
+
+            每一個元素至少可以自己形成長度 1 的 LIS，
+
+            所以：
+
+            <br><br>
+
+            <code>
+            dp[i] = 1
+            </code>
+
+            <br><br>
+
+            按 <b>Next</b> 開始。
+            `;
+
+
+        render();
+    }
+
+
+    // ============================
+    // 4. Next
+    // ============================
+
+    function nextStep(){
+
+        if(phase === "idle"){
+
+            build();
+
+            return;
+        }
+
+
+        if(phase === "dp"){
+
+            processDP();
+
+            return;
+        }
+
+
+        if(phase === "backtrack"){
+
+            processBacktrack();
+
+            return;
+        }
+
+
+        if(phase === "done"){
+
+            stopPlay();
+        }
+    }
+
+
+    // ============================
+    // 5. DP 一步
+    // ============================
+
+    function processDP(){
+
+        // DP 全部完成
+        if(i >= n){
+
+            startBacktrack();
+
+            return;
+        }
+
+
+        // i = 0 沒有前面的元素可以比較
+        if(i === 0){
+
+            activeI = 0;
+            activeJ = -1;
+
+
+            bestLength = 1;
+            bestEnd = 0;
+
+
+            message.innerHTML =
+                `
+                現在處理：
+
+                <code>i = 0</code>
+
+                <br><br>
+
+                a[0] = <b>${a[0]}</b>
+
+                <br><br>
+
+                前面沒有其他元素，
+
+                所以：
+
+                <br><br>
+
+                <code>
+                dp[0] = 1
+                </code>
+                `;
+
+
+            i = 1;
+            j = 0;
+
+
+            render();
+
+            return;
+        }
+
+
+        activeI = i;
+        activeJ = j;
+
+
+        const leftValue = a[j];
+        const currentValue = a[i];
+
+
+        // ========================
+        // a[j] < a[i]
+        // 可以接在後面
+        // ========================
+
+        if(a[j] < a[i]){
+
+            const candidate =
+                dp[j] + 1;
+
+
+            // 可以改善 dp[i]
+            if(candidate > dp[i]){
+
+                dp[i] =
+                    candidate;
+
+
+                parent[i] =
+                    j;
+
+
+                message.innerHTML =
+                    `
+                    比較：
+
+                    <br><br>
+
+                    a[${j}] =
+                    <b>${leftValue}</b>
+
+                    &nbsp;&nbsp;
+
+                    a[${i}] =
+                    <b>${currentValue}</b>
+
+                    <br><br>
+
+                    <span class="true">
+                    ${leftValue}
+                    &lt;
+                    ${currentValue}
+                    </span>
+
+                    <br><br>
+
+                    可以把
+                    a[${i}]
+                    接在
+                    a[${j}]
+                    後面。
+
+                    <br><br>
+
+                    <code>
+                    dp[${i}]
+                    =
+                    max(
+                        ${dp[i] === candidate ? candidate - 1 : dp[i]},
+                        dp[${j}] + 1
+                    )
+                    =
+                    ${dp[i]}
+                    </code>
+
+                    <br><br>
+
+                    parent[${i}]
+                    =
+                    ${j}
+                    `;
+            }
+
+            // 可以接，但沒有改善
+            else{
+
+                message.innerHTML =
+                    `
+                    比較：
+
+                    <br><br>
+
+                    a[${j}] =
+                    <b>${leftValue}</b>
+
+                    &nbsp;&nbsp;
+
+                    a[${i}] =
+                    <b>${currentValue}</b>
+
+                    <br><br>
+
+                    <span class="true">
+                    ${leftValue}
+                    &lt;
+                    ${currentValue}
+                    </span>
+
+                    <br><br>
+
+                    可以接，
+
+                    但：
+
+                    <br><br>
+
+                    <code>
+                    dp[${j}] + 1
+                    =
+                    ${candidate}
+                    </code>
+
+                    <br>
+
+                    沒有比目前：
+
+                    <code>
+                    dp[${i}] = ${dp[i]}
+                    </code>
+
+                    更大。
+
+                    <br><br>
+
+                    所以不更新。
+                    `;
+            }
+        }
+
+
+        // ========================
+        // a[j] >= a[i]
+        // 不可以接
+        // ========================
+
+        else{
+
+            message.innerHTML =
+                `
+                比較：
+
+                <br><br>
+
+                a[${j}] =
+                <b>${leftValue}</b>
+
+                &nbsp;&nbsp;
+
+                a[${i}] =
+                <b>${currentValue}</b>
+
+                <br><br>
+
+                <span class="false">
+                ${leftValue}
+                &lt;
+                ${currentValue}
+
+                不成立
+                </span>
+
+                <br><br>
+
+                所以不能把
+                a[${i}]
+                接到這個遞增子序列後面。
+
+                <br><br>
+
+                dp[${i}]
+                維持：
+
+                <b>${dp[i]}</b>
+                `;
+        }
+
+
+        // 下一個 j
+        j++;
+
+
+        // ========================
+        // j 全部檢查完
+        // ========================
+
+        if(j >= i){
+
+            if(dp[i] > bestLength){
+
+                bestLength =
+                    dp[i];
+
+
+                bestEnd =
+                    i;
+            }
+
+
+            i++;
+
+            j = 0;
+
+
+            if(i >= n){
+
+                message.innerHTML +=
+                    `
+                    <br><br>
+
+                    <b>
+                    DP 已全部完成。
+
+                    下一步開始回溯 LIS。
+                    </b>
+                    `;
+            }
+        }
+
+
+        render();
+    }
+
+
+    // ============================
+    // 6. 開始回溯
+    // ============================
+
+    function startBacktrack(){
+
+        phase =
+            "backtrack";
+
+
+        activeI = -1;
+        activeJ = -1;
+
+
+        backtrackIndex =
+            bestEnd;
+
+
+        lisAnswer = [];
+
+
+        message.innerHTML =
+            `
+            DP 已完成。
+
+            <br><br>
+
+            最長長度：
+
+            <b>${bestLength}</b>
+
+            <br><br>
+
+            最佳結尾位置：
+
+            <code>
+            index = ${bestEnd}
+            </code>
+
+            <br><br>
+
+            現在利用：
+
+            <code>
+            parent[]
+            </code>
+
+            回溯真正的 LIS。
+            `;
+
+
+        render();
+    }
+
+
+    // ============================
+    // 7. 回溯一步
+    // ============================
+
+    function processBacktrack(){
+
+        if(backtrackIndex === -1){
+
+            finish();
+
+            return;
+        }
+
+
+        const current =
+            backtrackIndex;
+
+
+        activeI =
+            current;
+
+        activeJ =
+            -1;
+
+
+        path.add(current);
+
+
+        lisAnswer.push(
+            a[current]
+        );
+
+
+        message.innerHTML =
+            `
+            目前位置：
+
+            <code>
+            index = ${current}
+            </code>
+
+            <br><br>
+
+            取出：
+
+            <b>${a[current]}</b>
+
+            <br><br>
+
+            parent[${current}]
+            =
+            ${parent[current]}
+
+            <br><br>
+
+            ${
+                parent[current] === -1
+
+                ?
+
+                "已經沒有前一個元素。"
+
+                :
+
+                "下一步移動到 index " +
+                parent[current] +
+                "。"
+            }
+            `;
+
+
+        backtrackIndex =
+            parent[current];
+
+
+        render();
+
+
+        if(backtrackIndex === -1){
+
+            if(timer === null){
+
+                finish();
+            }
+        }
+    }
+
+
+    // ============================
+    // 8. 完成
+    // ============================
+
+    function finish(){
+
+        stopPlay();
+
+
+        phase =
+            "done";
+
+
+        const answer =
+            [...lisAnswer]
+            .reverse();
+
+
+        result.innerHTML =
+            `
+            LIS =
+            [ ${answer.join(" → ")} ]
+
+            &nbsp;&nbsp;
+
+            Length =
+            ${bestLength}
+            `;
+
+
+        message.innerHTML =
+            `
+            <b>完成！</b>
+
+            <br><br>
+
+            最長遞增子序列：
+
+            <br><br>
+
+            <b>
+            ${answer.join(" → ")}
+            </b>
+
+            <br><br>
+
+            長度：
+
+            <b>${bestLength}</b>
+            `;
+
+
+        activeI =
+            -1;
+
+        activeJ =
+            -1;
+
+
+        render();
+    }
+
+
+    // ============================
+    // 9. Render
+    // ============================
+
+    function render(){
+
+        renderArray();
+
+        renderTable();
+    }
+
+
+    // ============================
+    // 10. 畫數列
+    // ============================
+
+    function renderArray(){
+
+        arrayView.innerHTML =
+            "";
+
+
+        for(
+            let index = 0;
+            index < n;
+            index++
+        ){
+
+            const div =
+                document.createElement("div");
+
+
+            div.className =
+                "item";
+
+
+            // i 和 j 同一格
+            if(
+                index === activeI &&
+                index === activeJ
+            ){
+
+                div.classList.add(
+                    "current-both"
+                );
+            }
+
+            // i
+            else if(
+                index === activeI
+            ){
+
+                div.classList.add(
+                    "current-i"
+                );
+            }
+
+            // j
+            else if(
+                index === activeJ
+            ){
+
+                div.classList.add(
+                    "current-j"
+                );
+            }
+
+
+            // LIS path
+            if(path.has(index)){
+
+                div.classList.add(
+                    "lis-path"
+                );
+            }
+
+
+            div.innerHTML =
+                `
+                <div class="item-index">
+                    index ${index}
+                </div>
+
+                <div class="item-value">
+                    ${a[index]}
+                </div>
+
+                <div class="item-dp">
+                    dp = ${dp[index]}
+                </div>
+                `;
+
+
+            arrayView.appendChild(
+                div
+            );
+        }
+    }
+
+
+    // ============================
+    // 11. 畫 DP Table
+    // ============================
+
+    function renderTable(){
+
+        dpBody.innerHTML =
+            "";
+
+
+        for(
+            let index = 0;
+            index < n;
+            index++
+        ){
+
+            const tr =
+                document.createElement("tr");
+
+
+            if(index === activeI){
+
+                tr.classList.add(
+                    "active-row"
+                );
+            }
+
+
+            if(path.has(index)){
+
+                tr.classList.add(
+                    "path-row"
+                );
+            }
+
+
+            tr.innerHTML =
+                `
+                <td>${index}</td>
+
+                <td>${a[index]}</td>
+
+                <td>${dp[index]}</td>
+
+                <td>
+                    ${
+                        parent[index] === -1
+                        ? "-"
+                        : parent[index]
+                    }
+                </td>
+                `;
+
+
+            dpBody.appendChild(
+                tr
+            );
+        }
+    }
+
+
+    // ============================
+    // 12. Play
+    // ============================
+
+    function play(){
+
+        if(timer !== null){
+            return;
+        }
+
+
+        timer =
+            setInterval(
+                () => {
+
+                    if(
+                        phase === "done"
+                    ){
+
+                        stopPlay();
+
+                        return;
+                    }
+
+
+                    if(
+                        phase === "backtrack" &&
+                        backtrackIndex === -1
+                    ){
+
+                        finish();
+
+                        return;
+                    }
+
+
+                    nextStep();
+
+                },
+                700
+            );
+    }
+
+
+    // ============================
+    // 13. Stop
+    // ============================
+
+    function stopPlay(){
+
+        if(timer !== null){
+
+            clearInterval(timer);
+
+            timer = null;
+        }
+    }
+
+
+    // ============================
+    // 14. Reset
+    // ============================
+
+    function reset(){
+
+        stopPlay();
+
+        build();
+    }
+
+
+    // ============================
+    // 15. Events
+    // ============================
+
+    buildBtn.addEventListener(
+        "click",
+        build
+    );
+
+
+    nextBtn.addEventListener(
+        "click",
+        nextStep
+    );
+
+
+    playBtn.addEventListener(
+        "click",
+        play
+    );
+
+
+    stopBtn.addEventListener(
+        "click",
+        stopPlay
+    );
+
+
+    resetBtn.addEventListener(
+        "click",
+        reset
+    );
+
+
+    // ============================
+    // 16. 初始化
+    // ============================
+
+    build();
+
+</script>
+
+</body>
+
+</html>
